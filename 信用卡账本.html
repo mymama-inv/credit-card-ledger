@@ -1,0 +1,1586 @@
+<meta charset="UTF-8">
+<title>信用卡账本 · 消费与返现</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="信用卡账本">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#eef1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141915" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    --paper: #eef1ec;
+    --paper-raised: #ffffff;
+    --ink: #1b2420;
+    --ink-soft: #55635c;
+    --rule: #d7ded7;
+    --accent: #1f6f54;
+    --accent-strong: #14503b;
+    --accent-soft: #dcede4;
+    --warn: #9c6b24;
+    --warn-soft: #f3e6ce;
+    --danger: #a3432f;
+    --shadow: 0 1px 2px rgba(27,36,32,0.06), 0 4px 14px rgba(27,36,32,0.05);
+    --font-serif: "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #141915;
+      --paper-raised: #1d231d;
+      --ink: #e7ece6;
+      --ink-soft: #97a399;
+      --rule: #2b332c;
+      --accent: #4fbe95;
+      --accent-strong: #7ed9b6;
+      --accent-soft: #1e3a2e;
+      --warn: #d9a24b;
+      --warn-soft: #3a2e17;
+      --danger: #d97a63;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141915; --paper-raised: #1d231d; --ink: #e7ece6; --ink-soft: #97a399;
+    --rule: #2b332c; --accent: #4fbe95; --accent-strong: #7ed9b6; --accent-soft: #1e3a2e;
+    --warn: #d9a24b; --warn-soft: #3a2e17; --danger: #d97a63;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --paper: #eef1ec; --paper-raised: #ffffff; --ink: #1b2420; --ink-soft: #55635c;
+    --rule: #d7ded7; --accent: #1f6f54; --accent-strong: #14503b; --accent-soft: #dcede4;
+    --warn: #9c6b24; --warn-soft: #f3e6ce; --danger: #a3432f;
+    --shadow: 0 1px 2px rgba(27,36,32,0.06), 0 4px 14px rgba(27,36,32,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 2.25rem 1.25rem 4rem;
+  }
+
+  /* ---- header / passbook cover ---- */
+  header.cover {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 1.75rem;
+  }
+  header.cover .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  header.cover h1 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  header.cover .sub {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+  .stat {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow);
+  }
+  .stat .label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .stat .value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.375rem;
+    margin-top: 0.25rem;
+    color: var(--ink);
+  }
+  .stat.rebate .value { color: var(--accent); }
+  .stat .note { font-size: 0.75rem; color: var(--warn); margin-top: 0.15rem; }
+
+  /* ---- generic sections ---- */
+  section { margin-bottom: 1.75rem; }
+  h2.section-title {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  h2.section-title .section-sub {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+
+  details.settings {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.settings > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.9rem 1.1rem;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  details.settings > summary::-webkit-details-marker { display: none; }
+  details.settings > summary .chev { color: var(--ink-soft); transition: transform 0.15s ease; }
+  details.settings[open] > summary .chev { transform: rotate(90deg); }
+  details.settings .body {
+    padding: 0.25rem 1.1rem 1.1rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .field-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .field label, .group-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .group-label { display: block; margin-bottom: 0.5rem; }
+  input[type="text"], input[type="number"], input[type="date"], select {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    background: var(--paper);
+    color: var(--ink);
+    width: 100%;
+  }
+  input[type="number"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  input::placeholder { color: var(--ink-soft); opacity: 0.7; }
+
+  .rule-row {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-end;
+    margin-bottom: 0.6rem;
+  }
+  .rule-row .field { flex: 1 1 auto; }
+  .rule-row .field.rate { max-width: 110px; }
+
+  button {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    padding: 0.5rem 0.85rem;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  button.primary { background: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-strong); }
+  button.ghost { background: transparent; border-color: var(--rule); color: var(--ink); }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  button.icon {
+    background: transparent;
+    border: none;
+    color: var(--ink-soft);
+    padding: 0.25rem 0.4rem;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  button.icon:hover { color: var(--danger); }
+  button.small { font-size: 0.78rem; padding: 0.35rem 0.6rem; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ---- card tabs ---- */
+  .card-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.35rem 0.5rem 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .card-tab .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .card-tab.active { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .card-tab .del {
+    background: transparent; border: none; color: inherit; opacity: 0.55;
+    padding: 0 0.15rem; font-size: 0.85rem; line-height: 1; cursor: pointer;
+  }
+  .card-tab .del:hover { opacity: 1; color: var(--danger); }
+  .add-card-btn { border-style: dashed; color: var(--ink-soft); background: transparent; }
+
+  .card-editor-label {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    margin-bottom: 0.75rem;
+  }
+  .card-editor-label b { color: var(--ink); font-weight: 600; }
+
+  /* ---- entry form ---- */
+  form#entry-form {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 1.1rem;
+  }
+  form#entry-form .actions {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    margin-top: 0.25rem;
+  }
+  .editing-flag {
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .no-cards-notice {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    background: var(--paper-raised);
+    border: 1px dashed var(--rule);
+    border-radius: 10px;
+  }
+
+  /* ---- ledger ---- */
+  .ledger-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .ledger-toolbar select { width: auto; min-width: 130px; }
+  .io-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper-raised); box-shadow: var(--shadow); }
+  table.ledger { width: 100%; border-collapse: collapse; min-width: 560px; }
+  table.ledger th {
+    text-align: left;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.ledger th.num, table.ledger td.num { text-align: right; }
+  table.ledger td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+  }
+  table.ledger tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  table.ledger td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  table.ledger td.rebate { color: var(--accent); font-weight: 600; }
+  table.ledger tr.ledger-footer td {
+    background: color-mix(in srgb, var(--rule) 40%, transparent);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  table.ledger tr.ledger-footer td.cap-note { color: var(--warn); font-family: var(--font-sans); }
+  .chip {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .chip.default { background: var(--paper); color: var(--ink-soft); border: 1px solid var(--rule); }
+  .card-name-cell { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; }
+  .card-name-cell .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .desc-cell { color: var(--ink-soft); font-size: 0.85rem; }
+  .row-actions { white-space: nowrap; text-align: right; }
+
+  .empty-state {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+
+  /* ---- archive ---- */
+  .archive-item {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--paper);
+  }
+  .archive-item:last-child { margin-bottom: 0; }
+  .archive-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .archive-title { font-family: var(--font-serif); font-weight: 600; }
+  .archive-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    flex: 1 1 auto;
+  }
+  .archive-nums b { color: var(--accent); font-weight: 600; }
+  .archive-nums .capped { color: var(--warn); font-family: var(--font-sans); }
+  .archive-detail { margin-top: 0.6rem; }
+  .archive-detail summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    list-style: none;
+  }
+  .archive-detail summary::-webkit-details-marker { display: none; }
+  .archive-detail summary::before { content: "› "; }
+  .archive-detail[open] summary::before { content: "⌄ "; }
+  .archive-detail .table-scroll { margin-top: 0.6rem; }
+
+  footer.app-footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    margin-top: 2rem;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(120%);
+    background: var(--accent-strong);
+    color: #fff;
+    padding: 0.65rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    transition: transform 0.25s ease;
+    z-index: 20;
+    max-width: calc(100vw - 2.5rem);
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="cover">
+    <div class="title-row">
+      <div>
+        <h1>信用卡账本</h1>
+        <div class="sub" id="header-sub">记录每一笔消费,自动算出返现</div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <section>
+    <details class="settings" id="settings-panel">
+      <summary>卡片与返现规则设置 <span class="chev">›</span></summary>
+      <div class="body">
+        <div class="field-row">
+          <div class="field" style="max-width:160px;">
+            <label for="currency-input">货币符号</label>
+            <input type="text" id="currency-input" maxlength="4" placeholder="$" />
+          </div>
+        </div>
+
+        <span class="group-label">我的卡片</span>
+        <div class="card-tabs" id="card-tabs"></div>
+
+        <div id="card-editor"></div>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2 class="section-title" id="form-title">记一笔</h2>
+    <div id="entry-form-area">
+      <form id="entry-form">
+        <input type="hidden" id="entry-id" />
+        <div class="field-row">
+          <div class="field">
+            <label for="entry-card">卡片</label>
+            <select id="entry-card"></select>
+          </div>
+          <div class="field">
+            <label for="entry-date">日期</label>
+            <input type="date" id="entry-date" required />
+          </div>
+          <div class="field">
+            <label for="entry-amount">金额</label>
+            <input type="number" id="entry-amount" step="0.01" min="0" required placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label for="entry-category">类别</label>
+            <select id="entry-category"></select>
+          </div>
+          <div class="field" style="flex: 2 1 220px;">
+            <label for="entry-desc">备注（可选）</label>
+            <input type="text" id="entry-desc" placeholder="例如：超市、餐厅…" />
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary" id="submit-btn">添加记录</button>
+          <span class="editing-flag" id="editing-flag" hidden>正在编辑这笔记录</span>
+          <button type="button" class="ghost" id="cancel-edit-btn" hidden>取消</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">本月账单 <span class="section-sub" id="ledger-month-label"></span></h2>
+    <div class="ledger-toolbar">
+      <div class="filter-group">
+        <select id="card-filter"></select>
+      </div>
+      <div class="io-buttons">
+        <button type="button" class="ghost small" id="manual-archive-btn">存档本月并清空</button>
+        <button type="button" class="ghost small" id="export-btn">导出 JSON</button>
+        <button type="button" class="ghost small" id="import-btn">导入 JSON</button>
+        <input type="file" id="import-file" accept="application/json" hidden />
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="ledger" id="ledger-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>卡片</th>
+            <th>类别</th>
+            <th>备注</th>
+            <th class="num">金额</th>
+            <th class="num">返现</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ledger-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <details class="settings" id="archive-panel">
+      <summary>历史存档 <span class="chev">›</span></summary>
+      <div class="body" id="archive-body"></div>
+    </details>
+  </section>
+
+  <footer class="app-footer">数据保存在本浏览器（localStorage），可随时导出备份。每到新的一个月，上个月的记录会自动移入历史存档。</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "cc-rebate-tracker-v2";
+  var LEGACY_KEY = "cc-rebate-tracker-v1";
+  var CARD_HUES = [155, 205, 280, 20, 340, 45, 190, 10];
+
+  var state = loadState();
+  var editingId = null;
+  var currentCardFilter = "all";
+
+  function freshCard(name) {
+    return { id: uid(), name: name || "我的信用卡", defaultRate: 1, monthlyCap: 0, rules: [], amountTiers: [] };
+  }
+
+  function defaultState() {
+    var card = freshCard("我的信用卡");
+    return { settings: { currency: "$" }, cards: [card], activeCardId: card.id, entries: [], archives: [] };
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (!parsed.settings) parsed.settings = { currency: "$" };
+        if (typeof parsed.settings.currency !== "string") parsed.settings.currency = "$";
+        if (!Array.isArray(parsed.cards) || parsed.cards.length === 0) {
+          var c = freshCard("我的信用卡");
+          parsed.cards = [c];
+          parsed.activeCardId = c.id;
+        }
+        parsed.cards.forEach(function (c) {
+          if (!Array.isArray(c.rules)) c.rules = [];
+          if (!Array.isArray(c.amountTiers)) c.amountTiers = [];
+          if (typeof c.defaultRate !== "number") c.defaultRate = 1;
+          if (typeof c.monthlyCap !== "number") c.monthlyCap = 0;
+        });
+        if (!Array.isArray(parsed.entries)) parsed.entries = [];
+        if (!Array.isArray(parsed.archives)) parsed.archives = [];
+        if (!parsed.activeCardId || !parsed.cards.some(function (c) { return c.id === parsed.activeCardId; })) {
+          parsed.activeCardId = parsed.cards[0].id;
+        }
+        return parsed;
+      }
+
+      var legacyRaw = localStorage.getItem(LEGACY_KEY);
+      if (legacyRaw) {
+        var legacy = JSON.parse(legacyRaw);
+        var migratedCard = freshCard("我的信用卡");
+        if (legacy.settings) {
+          migratedCard.defaultRate = typeof legacy.settings.defaultRate === "number" ? legacy.settings.defaultRate : 1;
+          migratedCard.monthlyCap = typeof legacy.settings.monthlyCap === "number" ? legacy.settings.monthlyCap : 0;
+          migratedCard.rules = Array.isArray(legacy.settings.rules) ? legacy.settings.rules : [];
+        }
+        var migratedEntries = (Array.isArray(legacy.entries) ? legacy.entries : []).map(function (e) {
+          return { id: e.id || uid(), cardId: migratedCard.id, date: e.date, amount: e.amount, category: e.category || "", description: e.description || "" };
+        });
+        return {
+          settings: { currency: (legacy.settings && legacy.settings.currency) || "$" },
+          cards: [migratedCard],
+          activeCardId: migratedCard.id,
+          entries: migratedEntries,
+          archives: []
+        };
+      }
+
+      return defaultState();
+    } catch (e) {
+      return defaultState();
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function uid() {
+    return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  }
+
+  function cardById(id) {
+    return state.cards.filter(function (c) { return c.id === id; })[0] || null;
+  }
+
+  function cardHue(cardId) {
+    var idx = state.cards.findIndex(function (c) { return c.id === cardId; });
+    if (idx < 0) idx = 0;
+    return CARD_HUES[idx % CARD_HUES.length];
+  }
+
+  function categoryRuleForEntry(e) {
+    var card = cardById(e.cardId);
+    if (!card) return null;
+    return card.rules.filter(function (r) { return r.category === e.category; })[0] || null;
+  }
+
+  function tierForEntry(e) {
+    var card = cardById(e.cardId);
+    if (!card || !Array.isArray(card.amountTiers) || card.amountTiers.length === 0) return null;
+    var sorted = card.amountTiers.slice().sort(function (a, b) { return a.minAmount - b.minAmount; });
+    var matched = null;
+    sorted.forEach(function (t) { if (e.amount >= t.minAmount) matched = t; });
+    return matched;
+  }
+
+  function rateForEntry(e) {
+    var card = cardById(e.cardId);
+    if (!card) return 0;
+    var rule = categoryRuleForEntry(e);
+    if (rule) return rule.rate;
+    var tier = tierForEntry(e);
+    if (tier) return tier.rate;
+    return card.defaultRate;
+  }
+
+  function rateLabelForEntry(e) {
+    var rule = categoryRuleForEntry(e);
+    if (rule) return { text: rule.category, isDefault: false };
+    var tier = tierForEntry(e);
+    if (tier) return { text: "满" + fmtMoney(tier.minAmount), isDefault: false };
+    return { text: "默认", isDefault: true };
+  }
+
+  function rebateForEntry(e) {
+    return (e.amount * rateForEntry(e)) / 100;
+  }
+
+  function fmtMoney(n) {
+    var cur = state.settings.currency || "";
+    var v = Math.round((n + Number.EPSILON) * 100) / 100;
+    return cur + v.toFixed(2);
+  }
+
+  function monthKey(dateStr) { return dateStr ? dateStr.slice(0, 7) : ""; }
+
+  function monthLabel(key) {
+    var parts = key.split("-");
+    return parts[0] + "年" + parseInt(parts[1], 10) + "月";
+  }
+
+  function todayStr() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+
+  function currentMonthKey() { return monthKey(todayStr()); }
+
+  function showToast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(function () { t.classList.remove("show"); }, 3200);
+  }
+
+  // ---------- monthly archiving ----------
+
+  function archiveMonthEntries(mk, list) {
+    if (!list || list.length === 0) return;
+    var frozenEntries = list.map(function (e) {
+      var card = cardById(e.cardId);
+      return {
+        id: e.id, cardId: e.cardId, cardName: card ? card.name : "已删除的卡片",
+        date: e.date, amount: e.amount, category: e.category, description: e.description,
+        rebate: rebateForEntry(e), categoryLabel: rateLabelForEntry(e).text
+      };
+    }).sort(function (a, b) { return b.date.localeCompare(a.date); });
+
+    var byCard = {};
+    frozenEntries.forEach(function (e) { (byCard[e.cardId] = byCard[e.cardId] || []).push(e); });
+    var cardSummaries = Object.keys(byCard).map(function (cid) {
+      var arr = byCard[cid];
+      var card = cardById(cid);
+      var spend = arr.reduce(function (s, e) { return s + e.amount; }, 0);
+      var nominal = arr.reduce(function (s, e) { return s + e.rebate; }, 0);
+      var cap = card ? card.monthlyCap : 0;
+      var effective = cap > 0 ? Math.min(nominal, cap) : nominal;
+      return { cardId: cid, cardName: arr[0].cardName, spend: spend, nominalRebate: nominal, effectiveRebate: effective, capped: cap > 0 && nominal > cap, monthlyCap: cap };
+    });
+    var totalSpend = cardSummaries.reduce(function (s, c) { return s + c.spend; }, 0);
+    var totalNominal = cardSummaries.reduce(function (s, c) { return s + c.nominalRebate; }, 0);
+    var totalEffective = cardSummaries.reduce(function (s, c) { return s + c.effectiveRebate; }, 0);
+    var anyCapped = cardSummaries.some(function (c) { return c.capped; });
+
+    state.archives = (state.archives || []).filter(function (a) { return a.month !== mk; });
+    state.archives.push({
+      month: mk,
+      archivedAt: new Date().toISOString(),
+      entries: frozenEntries,
+      cardSummaries: cardSummaries,
+      totalSpend: totalSpend,
+      totalNominalRebate: totalNominal,
+      totalEffectiveRebate: totalEffective,
+      anyCapped: anyCapped
+    });
+    state.archives.sort(function (a, b) { return b.month.localeCompare(a.month); });
+  }
+
+  function sweepToArchive() {
+    var curKey = currentMonthKey();
+    var keep = [];
+    var byMonth = {};
+    state.entries.forEach(function (e) {
+      var mk = monthKey(e.date);
+      if (!mk || mk === curKey) { keep.push(e); return; }
+      (byMonth[mk] = byMonth[mk] || []).push(e);
+    });
+    var monthsToArchive = Object.keys(byMonth);
+    if (monthsToArchive.length === 0) return false;
+    monthsToArchive.forEach(function (mk) { archiveMonthEntries(mk, byMonth[mk]); });
+    state.entries = keep;
+    return true;
+  }
+
+  function renderArchive() {
+    var container = document.getElementById("archive-body");
+    container.innerHTML = "";
+    var archives = state.archives || [];
+    if (archives.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "暂无存档。进入新的月份后，上个月的记录会自动移到这里。";
+      container.appendChild(empty);
+      return;
+    }
+    archives.forEach(function (a) { container.appendChild(archiveItem(a)); });
+  }
+
+  function archiveItem(a) {
+    var item = document.createElement("div");
+    item.className = "archive-item";
+
+    var head = document.createElement("div");
+    head.className = "archive-head";
+
+    var title = document.createElement("div");
+    title.className = "archive-title";
+    title.textContent = monthLabel(a.month);
+
+    var nums = document.createElement("div");
+    nums.className = "archive-nums";
+    var numsHtml = "消费 " + fmtMoney(a.totalSpend) + " · 返现 <b>" + fmtMoney(a.totalEffectiveRebate) + "</b>";
+    if (a.anyCapped) numsHtml += " <span class=\"capped\">（已达上限，原 " + fmtMoney(a.totalNominalRebate) + "）</span>";
+    nums.innerHTML = numsHtml;
+
+    var delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "icon";
+    delBtn.title = "删除此存档";
+    delBtn.textContent = "✕";
+    delBtn.addEventListener("click", function () {
+      if (!confirm(monthLabel(a.month) + " 的存档删除后无法恢复，确定吗？")) return;
+      state.archives = state.archives.filter(function (x) { return x.month !== a.month; });
+      saveState();
+      renderArchive();
+    });
+
+    head.appendChild(title);
+    head.appendChild(nums);
+    head.appendChild(delBtn);
+    item.appendChild(head);
+
+    var detail = document.createElement("details");
+    detail.className = "archive-detail";
+    var summary = document.createElement("summary");
+    summary.textContent = "查看明细（" + a.entries.length + " 笔）";
+    detail.appendChild(summary);
+
+    var scroll = document.createElement("div");
+    scroll.className = "table-scroll";
+    var table = document.createElement("table");
+    table.className = "ledger";
+    var thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>日期</th><th>卡片</th><th>类别</th><th>备注</th><th class=\"num\">金额</th><th class=\"num\">返现</th></tr>";
+    var tbody = document.createElement("tbody");
+    a.entries.forEach(function (e) {
+      var tr = document.createElement("tr");
+      var tdDate = document.createElement("td"); tdDate.textContent = e.date;
+      var tdCard = document.createElement("td"); tdCard.textContent = e.cardName;
+      var tdCat = document.createElement("td");
+      var chip = document.createElement("span");
+      var label = e.categoryLabel || e.category || "默认";
+      chip.className = "chip" + (label === "默认" ? " default" : "");
+      chip.textContent = label;
+      tdCat.appendChild(chip);
+      var tdDesc = document.createElement("td"); tdDesc.className = "desc-cell"; tdDesc.textContent = e.description || "—";
+      var tdAmount = document.createElement("td"); tdAmount.className = "num"; tdAmount.textContent = fmtMoney(e.amount);
+      var tdRebate = document.createElement("td"); tdRebate.className = "num rebate"; tdRebate.textContent = fmtMoney(e.rebate);
+      tr.appendChild(tdDate); tr.appendChild(tdCard); tr.appendChild(tdCat); tr.appendChild(tdDesc); tr.appendChild(tdAmount); tr.appendChild(tdRebate);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    detail.appendChild(scroll);
+    item.appendChild(detail);
+
+    return item;
+  }
+
+  // ---------- card tabs + editor ----------
+
+  function renderCardTabs() {
+    var container = document.getElementById("card-tabs");
+    container.innerHTML = "";
+    state.cards.forEach(function (c) {
+      var tab = document.createElement("span");
+      tab.className = "card-tab" + (c.id === state.activeCardId ? " active" : "");
+
+      var dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = "hsl(" + cardHue(c.id) + ", 55%, 50%)";
+      tab.appendChild(dot);
+
+      var label = document.createElement("span");
+      label.textContent = c.name || "未命名卡片";
+      tab.appendChild(label);
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "del";
+      del.title = "删除这张卡";
+      del.textContent = "✕";
+      del.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        deleteCard(c.id);
+      });
+      tab.appendChild(del);
+
+      tab.addEventListener("click", function () {
+        state.activeCardId = c.id;
+        saveState();
+        renderCardTabs();
+        renderCardEditor();
+        if (!editingId) {
+          document.getElementById("entry-card").value = c.id;
+          renderCategorySelect();
+        }
+      });
+
+      container.appendChild(tab);
+    });
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "ghost small add-card-btn";
+    addBtn.textContent = "+ 添加卡片";
+    addBtn.addEventListener("click", addCard);
+    container.appendChild(addBtn);
+  }
+
+  function addCard() {
+    var name = prompt("新卡片名称（例如：某某信用卡）", "");
+    if (name === null) return;
+    name = name.trim() || "未命名卡片";
+    var card = freshCard(name);
+    state.cards.push(card);
+    state.activeCardId = card.id;
+    saveState();
+    renderCardTabs();
+    renderCardEditor();
+    renderEntryCardSelect();
+    renderLedger();
+  }
+
+  function deleteCard(id) {
+    if (state.cards.length <= 1) {
+      alert("至少需要保留一张卡片。");
+      return;
+    }
+    var relatedCount = state.entries.filter(function (e) { return e.cardId === id; }).length;
+    var msg = relatedCount > 0
+      ? "这张卡下还有 " + relatedCount + " 笔本月消费记录，删除卡片会一并删除这些记录，确定吗？"
+      : "确定删除这张卡片吗？";
+    if (!confirm(msg)) return;
+
+    state.entries = state.entries.filter(function (e) { return e.cardId !== id; });
+    state.cards = state.cards.filter(function (c) { return c.id !== id; });
+    if (state.activeCardId === id) state.activeCardId = state.cards[0].id;
+    saveState();
+    renderCardTabs();
+    renderCardEditor();
+    renderEntryCardSelect();
+    renderLedger();
+  }
+
+  function renderCardEditor() {
+    var container = document.getElementById("card-editor");
+    container.innerHTML = "";
+    var card = cardById(state.activeCardId);
+    if (!card) return;
+
+    var labelLine = document.createElement("div");
+    labelLine.className = "card-editor-label";
+    labelLine.innerHTML = "正在设置：<b></b> 的返现规则";
+    labelLine.querySelector("b").textContent = card.name;
+    container.appendChild(labelLine);
+
+    var row = document.createElement("div");
+    row.className = "field-row";
+
+    var nameField = fieldWith("卡片名称", "text", card.name, function (v) {
+      card.name = v;
+      saveState();
+      renderCardTabs();
+      renderEntryCardSelect();
+      renderLedger();
+    });
+    var rateField = fieldWith("默认返现率 (%)", "number", card.defaultRate, function (v) {
+      card.defaultRate = parseFloat(v) || 0;
+      saveState();
+      renderCategorySelect();
+      renderStats();
+      renderLedger();
+    }, { step: "0.01", min: "0" });
+    var capField = fieldWith("每月返现上限（留空或 0 表示不限）", "number", card.monthlyCap || "", function (v) {
+      card.monthlyCap = parseFloat(v) || 0;
+      saveState();
+      renderStats();
+      renderLedger();
+    }, { step: "0.01", min: "0", placeholder: "不限" });
+
+    row.appendChild(nameField);
+    row.appendChild(rateField);
+    row.appendChild(capField);
+    container.appendChild(row);
+
+    var rulesLabel = document.createElement("span");
+    rulesLabel.className = "group-label";
+    rulesLabel.textContent = "分类返现率";
+    container.appendChild(rulesLabel);
+
+    var rulesList = document.createElement("div");
+    rulesList.id = "rules-list";
+    container.appendChild(rulesList);
+    renderRulesList(card);
+
+    var addRuleBtn = document.createElement("button");
+    addRuleBtn.type = "button";
+    addRuleBtn.className = "ghost small";
+    addRuleBtn.textContent = "+ 添加类别";
+    addRuleBtn.addEventListener("click", function () {
+      card.rules.push({ category: "", rate: card.defaultRate });
+      saveState();
+      renderRulesList(card);
+      renderCategorySelect();
+    });
+    container.appendChild(addRuleBtn);
+
+    var tiersLabel = document.createElement("span");
+    tiersLabel.className = "group-label";
+    tiersLabel.style.display = "block";
+    tiersLabel.style.marginTop = "1.1rem";
+    tiersLabel.textContent = "满额阶梯返现（按单笔消费金额）";
+    container.appendChild(tiersLabel);
+
+    var tiersHint = document.createElement("div");
+    tiersHint.className = "card-editor-label";
+    tiersHint.style.marginBottom = "0.6rem";
+    tiersHint.textContent = "例如：单笔满 300 给 5%，否则用上面的默认返现率。若命中了分类返现率，分类优先。";
+    container.appendChild(tiersHint);
+
+    var tiersList = document.createElement("div");
+    tiersList.id = "tiers-list";
+    container.appendChild(tiersList);
+    renderTiersList(card);
+
+    var addTierBtn = document.createElement("button");
+    addTierBtn.type = "button";
+    addTierBtn.className = "ghost small";
+    addTierBtn.textContent = "+ 添加阶梯";
+    addTierBtn.addEventListener("click", function () {
+      card.amountTiers.push({ minAmount: 0, rate: card.defaultRate });
+      saveState();
+      renderTiersList(card);
+      renderCategorySelect();
+      renderLedger();
+    });
+    container.appendChild(addTierBtn);
+  }
+
+  function renderTiersList(card) {
+    var container = document.getElementById("tiers-list");
+    container.innerHTML = "";
+    card.amountTiers.forEach(function (tier, idx) {
+      var row = document.createElement("div");
+      row.className = "rule-row";
+
+      var minField = document.createElement("div");
+      minField.className = "field";
+      var minInput = document.createElement("input");
+      minInput.type = "number";
+      minInput.step = "0.01";
+      minInput.min = "0";
+      minInput.placeholder = "单笔满多少金额，例如 300";
+      minInput.value = tier.minAmount;
+      minInput.addEventListener("input", function () {
+        card.amountTiers[idx].minAmount = parseFloat(minInput.value) || 0;
+        saveState();
+        renderStats();
+        renderLedger();
+      });
+      minField.appendChild(minInput);
+
+      var rateField = document.createElement("div");
+      rateField.className = "field rate";
+      var rateInput = document.createElement("input");
+      rateInput.type = "number";
+      rateInput.step = "0.01";
+      rateInput.min = "0";
+      rateInput.value = tier.rate;
+      rateInput.addEventListener("input", function () {
+        card.amountTiers[idx].rate = parseFloat(rateInput.value) || 0;
+        saveState();
+        renderStats();
+        renderLedger();
+      });
+      rateField.appendChild(rateInput);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "icon";
+      delBtn.title = "删除这个阶梯";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function () {
+        card.amountTiers.splice(idx, 1);
+        saveState();
+        renderTiersList(card);
+        renderCategorySelect();
+        renderStats();
+        renderLedger();
+      });
+
+      row.appendChild(minField);
+      row.appendChild(rateField);
+      row.appendChild(delBtn);
+      container.appendChild(row);
+    });
+  }
+
+  function fieldWith(label, type, value, onInput, attrs) {
+    var field = document.createElement("div");
+    field.className = "field";
+    var l = document.createElement("label");
+    l.textContent = label;
+    var input = document.createElement("input");
+    input.type = type;
+    input.value = value;
+    if (attrs) Object.keys(attrs).forEach(function (k) { input.setAttribute(k, attrs[k]); });
+    input.addEventListener("input", function () { onInput(input.value); });
+    field.appendChild(l);
+    field.appendChild(input);
+    return field;
+  }
+
+  function renderRulesList(card) {
+    var container = document.getElementById("rules-list");
+    container.innerHTML = "";
+    card.rules.forEach(function (rule, idx) {
+      var row = document.createElement("div");
+      row.className = "rule-row";
+
+      var catField = document.createElement("div");
+      catField.className = "field";
+      var catInput = document.createElement("input");
+      catInput.type = "text";
+      catInput.placeholder = "类别名称，例如：餐饮";
+      catInput.value = rule.category;
+      catInput.addEventListener("input", function () {
+        var oldName = card.rules[idx].category;
+        card.rules[idx].category = catInput.value;
+        state.entries.forEach(function (e) {
+          if (e.cardId === card.id && e.category === oldName) e.category = catInput.value;
+        });
+        saveState();
+        renderCategorySelect();
+        renderLedger();
+      });
+      catField.appendChild(catInput);
+
+      var rateField = document.createElement("div");
+      rateField.className = "field rate";
+      var rateInput = document.createElement("input");
+      rateInput.type = "number";
+      rateInput.step = "0.01";
+      rateInput.min = "0";
+      rateInput.value = rule.rate;
+      rateInput.addEventListener("input", function () {
+        card.rules[idx].rate = parseFloat(rateInput.value) || 0;
+        saveState();
+        renderStats();
+        renderLedger();
+      });
+      rateField.appendChild(rateInput);
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "icon";
+      delBtn.title = "删除类别";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", function () {
+        card.rules.splice(idx, 1);
+        saveState();
+        renderRulesList(card);
+        renderCategorySelect();
+        renderStats();
+        renderLedger();
+      });
+
+      row.appendChild(catField);
+      row.appendChild(rateField);
+      row.appendChild(delBtn);
+      container.appendChild(row);
+    });
+  }
+
+  // ---------- entry form ----------
+
+  function renderEntryCardSelect() {
+    var sel = document.getElementById("entry-card");
+    var current = sel.value || state.activeCardId;
+    sel.innerHTML = "";
+    state.cards.forEach(function (c) {
+      var opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+    if ([].some.call(sel.options, function (o) { return o.value === current; })) sel.value = current;
+
+    var hasCards = state.cards.length > 0;
+    document.getElementById("entry-form").style.display = hasCards ? "" : "none";
+    var notice = document.getElementById("no-cards-notice");
+    if (!hasCards && !notice) {
+      notice = document.createElement("div");
+      notice.id = "no-cards-notice";
+      notice.className = "no-cards-notice";
+      notice.textContent = "请先在上面添加一张卡片，再记录消费。";
+      document.getElementById("entry-form-area").appendChild(notice);
+    } else if (hasCards && notice) {
+      notice.remove();
+    }
+  }
+
+  function renderCategorySelect() {
+    var sel = document.getElementById("entry-category");
+    var current = sel.value;
+    var cardId = document.getElementById("entry-card").value || state.activeCardId;
+    var card = cardById(cardId);
+    sel.innerHTML = "";
+    if (!card) return;
+    var defOpt = document.createElement("option");
+    defOpt.value = "";
+    defOpt.textContent = card.amountTiers && card.amountTiers.length > 0
+      ? "其他（默认 " + card.defaultRate + "%，满额另有阶梯）"
+      : "其他（默认 " + card.defaultRate + "%）";
+    sel.appendChild(defOpt);
+    card.rules.forEach(function (r) {
+      if (!r.category) return;
+      var opt = document.createElement("option");
+      opt.value = r.category;
+      opt.textContent = r.category + "（" + r.rate + "%）";
+      sel.appendChild(opt);
+    });
+    if ([].some.call(sel.options, function (o) { return o.value === current; })) sel.value = current;
+  }
+
+  // ---------- ledger computation (current month only; older months live in archives) ----------
+
+  function visibleEntries() {
+    return state.entries.filter(function (e) {
+      if (currentCardFilter !== "all" && e.cardId !== currentCardFilter) return false;
+      return true;
+    });
+  }
+
+  function computeCurrentSummary() {
+    var list = visibleEntries().slice().sort(function (a, b) { return b.date.localeCompare(a.date); });
+    var spend = list.reduce(function (s, e) { return s + e.amount; }, 0);
+
+    var byCard = {};
+    list.forEach(function (e) {
+      (byCard[e.cardId] = byCard[e.cardId] || []).push(e);
+    });
+    var nominalRebate = 0, effectiveRebate = 0, capped = false;
+    Object.keys(byCard).forEach(function (cid) {
+      var card = cardById(cid);
+      var nominal = byCard[cid].reduce(function (s, e) { return s + rebateForEntry(e); }, 0);
+      var cap = card ? card.monthlyCap : 0;
+      var effective = cap > 0 ? Math.min(nominal, cap) : nominal;
+      if (cap > 0 && nominal > cap) capped = true;
+      nominalRebate += nominal;
+      effectiveRebate += effective;
+    });
+
+    return { entries: list, spend: spend, nominalRebate: nominalRebate, effectiveRebate: effectiveRebate, capped: capped };
+  }
+
+  function renderCardFilter() {
+    var sel = document.getElementById("card-filter");
+    var current = sel.value || currentCardFilter;
+    sel.innerHTML = "";
+    var allOpt = document.createElement("option");
+    allOpt.value = "all";
+    allOpt.textContent = "全部卡片";
+    sel.appendChild(allOpt);
+    state.cards.forEach(function (c) {
+      var opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+    if ([].some.call(sel.options, function (o) { return o.value === current; })) {
+      sel.value = current;
+    } else {
+      sel.value = "all";
+    }
+    currentCardFilter = sel.value;
+  }
+
+  function renderStats() {
+    var summary = computeCurrentSummary();
+    var rate = summary.spend > 0 ? (summary.effectiveRebate / summary.spend) * 100 : 0;
+
+    var container = document.getElementById("stats");
+    container.innerHTML = "";
+    container.appendChild(statTile("本月消费", fmtMoney(summary.spend), ""));
+    container.appendChild(statTile("本月返现", fmtMoney(summary.effectiveRebate), summary.capped ? "已达月度上限" : "", true));
+    container.appendChild(statTile("本月返现率", rate.toFixed(2) + "%", ""));
+
+    document.getElementById("ledger-month-label").textContent = "· " + monthLabel(currentMonthKey());
+  }
+
+  function statTile(label, value, note, isRebate) {
+    var div = document.createElement("div");
+    div.className = "stat" + (isRebate ? " rebate" : "");
+    var l = document.createElement("div");
+    l.className = "label";
+    l.textContent = label;
+    var v = document.createElement("div");
+    v.className = "value";
+    v.textContent = value;
+    div.appendChild(l);
+    div.appendChild(v);
+    if (note) {
+      var n = document.createElement("div");
+      n.className = "note";
+      n.textContent = note;
+      div.appendChild(n);
+    }
+    return div;
+  }
+
+  function renderLedger() {
+    renderCardFilter();
+    renderStats();
+
+    var summary = computeCurrentSummary();
+    var body = document.getElementById("ledger-body");
+    body.innerHTML = "";
+
+    if (summary.entries.length === 0) {
+      var tr = document.createElement("tr");
+      var td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state";
+      td.textContent = state.entries.length === 0 ? "本月还没有消费记录，添加第一笔吧" : "这个筛选条件下没有记录";
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+
+    summary.entries.forEach(function (e) {
+      body.appendChild(entryRow(e));
+    });
+
+    var mf = document.createElement("tr");
+    mf.className = "ledger-footer";
+    var tdBlank = document.createElement("td"); tdBlank.colSpan = 4; tdBlank.textContent = "本月合计";
+    var tdSpend = document.createElement("td"); tdSpend.className = "num"; tdSpend.textContent = fmtMoney(summary.spend);
+    var tdRebate = document.createElement("td"); tdRebate.className = "num";
+    tdRebate.textContent = fmtMoney(summary.effectiveRebate) + (summary.capped ? " (原" + fmtMoney(summary.nominalRebate) + ")" : "");
+    var tdNote = document.createElement("td");
+    if (summary.capped) { tdNote.className = "cap-note"; tdNote.textContent = "已达上限"; }
+    mf.appendChild(tdBlank); mf.appendChild(tdSpend); mf.appendChild(tdRebate); mf.appendChild(tdNote);
+    body.appendChild(mf);
+  }
+
+  function entryRow(e) {
+    var tr = document.createElement("tr");
+
+    var tdDate = document.createElement("td"); tdDate.textContent = e.date;
+
+    var tdCard = document.createElement("td");
+    var card = cardById(e.cardId);
+    var cardSpan = document.createElement("span");
+    cardSpan.className = "card-name-cell";
+    var dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = "hsl(" + cardHue(e.cardId) + ", 55%, 50%)";
+    cardSpan.appendChild(dot);
+    var cardText = document.createElement("span");
+    cardText.textContent = card ? card.name : "已删除的卡片";
+    cardSpan.appendChild(cardText);
+    tdCard.appendChild(cardSpan);
+
+    var tdCat = document.createElement("td");
+    var chip = document.createElement("span");
+    var rateLabel = rateLabelForEntry(e);
+    chip.className = "chip" + (rateLabel.isDefault ? " default" : "");
+    chip.textContent = rateLabel.text;
+    tdCat.appendChild(chip);
+
+    var tdDesc = document.createElement("td");
+    tdDesc.className = "desc-cell";
+    tdDesc.textContent = e.description || "—";
+
+    var tdAmount = document.createElement("td");
+    tdAmount.className = "num";
+    tdAmount.textContent = fmtMoney(e.amount);
+
+    var tdRebate = document.createElement("td");
+    tdRebate.className = "num rebate";
+    tdRebate.textContent = fmtMoney(rebateForEntry(e));
+
+    var tdActions = document.createElement("td");
+    tdActions.className = "row-actions";
+    var editBtn = document.createElement("button");
+    editBtn.type = "button"; editBtn.className = "icon"; editBtn.title = "编辑"; editBtn.textContent = "✎";
+    editBtn.addEventListener("click", function () { startEdit(e.id); });
+    var delBtn = document.createElement("button");
+    delBtn.type = "button"; delBtn.className = "icon"; delBtn.title = "删除"; delBtn.textContent = "✕";
+    delBtn.addEventListener("click", function () { deleteEntry(e.id); });
+    tdActions.appendChild(editBtn);
+    tdActions.appendChild(delBtn);
+
+    tr.appendChild(tdDate);
+    tr.appendChild(tdCard);
+    tr.appendChild(tdCat);
+    tr.appendChild(tdDesc);
+    tr.appendChild(tdAmount);
+    tr.appendChild(tdRebate);
+    tr.appendChild(tdActions);
+    return tr;
+  }
+
+  function deleteEntry(id) {
+    state.entries = state.entries.filter(function (e) { return e.id !== id; });
+    if (editingId === id) cancelEdit();
+    saveState();
+    renderLedger();
+  }
+
+  function startEdit(id) {
+    var e = state.entries.filter(function (x) { return x.id === id; })[0];
+    if (!e) return;
+    editingId = id;
+    document.getElementById("entry-id").value = e.id;
+    document.getElementById("entry-card").value = e.cardId;
+    renderCategorySelect();
+    document.getElementById("entry-date").value = e.date;
+    document.getElementById("entry-amount").value = e.amount;
+    document.getElementById("entry-category").value = e.category || "";
+    document.getElementById("entry-desc").value = e.description || "";
+    document.getElementById("submit-btn").textContent = "保存修改";
+    document.getElementById("editing-flag").hidden = false;
+    document.getElementById("cancel-edit-btn").hidden = false;
+    document.getElementById("form-title").textContent = "编辑这笔记录";
+    document.getElementById("entry-form").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    document.getElementById("entry-form").reset();
+    document.getElementById("entry-id").value = "";
+    document.getElementById("entry-card").value = state.activeCardId;
+    renderCategorySelect();
+    document.getElementById("entry-date").value = todayStr();
+    document.getElementById("submit-btn").textContent = "添加记录";
+    document.getElementById("editing-flag").hidden = true;
+    document.getElementById("cancel-edit-btn").hidden = true;
+    document.getElementById("form-title").textContent = "记一笔";
+  }
+
+  // ---------- events ----------
+
+  document.getElementById("entry-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var cardId = document.getElementById("entry-card").value;
+    var date = document.getElementById("entry-date").value;
+    var amount = parseFloat(document.getElementById("entry-amount").value);
+    var category = document.getElementById("entry-category").value;
+    var description = document.getElementById("entry-desc").value.trim();
+    if (!cardId || !date || !(amount >= 0)) return;
+
+    if (editingId) {
+      var e = state.entries.filter(function (x) { return x.id === editingId; })[0];
+      if (e) { e.cardId = cardId; e.date = date; e.amount = amount; e.category = category; e.description = description; }
+    } else {
+      state.entries.push({ id: uid(), cardId: cardId, date: date, amount: amount, category: category, description: description });
+    }
+    saveState();
+    cancelEdit();
+    renderLedger();
+  });
+
+  document.getElementById("entry-card").addEventListener("change", renderCategorySelect);
+  document.getElementById("cancel-edit-btn").addEventListener("click", cancelEdit);
+
+  document.getElementById("currency-input").addEventListener("input", function (ev) {
+    state.settings.currency = ev.target.value;
+    saveState();
+    renderStats();
+    renderLedger();
+    renderArchive();
+  });
+
+  document.getElementById("card-filter").addEventListener("change", function (ev) {
+    currentCardFilter = ev.target.value;
+    renderLedger();
+  });
+
+  document.getElementById("manual-archive-btn").addEventListener("click", function () {
+    var curKey = currentMonthKey();
+    var list = state.entries.filter(function (e) { return monthKey(e.date) === curKey; });
+    if (list.length === 0) {
+      alert("本月还没有记录，不需要存档。");
+      return;
+    }
+    if (!confirm("确定现在把本月记录存档并清空吗？存档后仍可在“历史存档”查看，但不能再编辑。")) return;
+    archiveMonthEntries(curKey, list);
+    state.entries = state.entries.filter(function (e) { return monthKey(e.date) !== curKey; });
+    saveState();
+    renderLedger();
+    renderArchive();
+    showToast("本月记录已存档并清空");
+  });
+
+  document.getElementById("export-btn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "信用卡账本-导出-" + todayStr() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("import-btn").addEventListener("click", function () {
+    document.getElementById("import-file").click();
+  });
+
+  document.getElementById("import-file").addEventListener("change", function (ev) {
+    var file = ev.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(reader.result);
+        if (!parsed || !Array.isArray(parsed.entries) || !Array.isArray(parsed.cards) || !parsed.settings) throw new Error("格式不对");
+        if (!confirm("导入将覆盖当前数据，确定吗？")) return;
+        state = parsed;
+        if (!Array.isArray(state.archives)) state.archives = [];
+        saveState();
+        state = loadState();
+        initFromState();
+      } catch (err) {
+        alert("导入失败：文件不是有效的账本 JSON。");
+      }
+    };
+    reader.readAsText(file);
+    ev.target.value = "";
+  });
+
+  // ---------- quick-add via URL (for Shortcuts / home screen automation) ----------
+
+  function handleQuickAddFromUrl() {
+    var params = new URLSearchParams(location.search);
+    if (params.get("add") !== "1") return;
+
+    var amount = parseFloat(params.get("amount"));
+    if (!(amount >= 0)) { history.replaceState(null, "", location.pathname); return; }
+
+    var cardParam = (params.get("card") || "").trim();
+    var card = cardById(cardParam) ||
+      state.cards.filter(function (c) { return c.name === cardParam; })[0] ||
+      cardById(state.activeCardId) ||
+      state.cards[0];
+
+    if (!card) { history.replaceState(null, "", location.pathname); return; }
+
+    var category = params.get("category") || "";
+    var description = params.get("desc") || params.get("description") || "";
+    var date = params.get("date") || todayStr();
+
+    state.entries.push({ id: uid(), cardId: card.id, date: date, amount: amount, category: category, description: description });
+    saveState();
+    history.replaceState(null, "", location.pathname);
+    renderLedger();
+    showToast("已自动记录：" + fmtMoney(amount) + (description ? "（" + description + "）" : ""));
+  }
+
+  // ---------- init ----------
+
+  function initFromState() {
+    document.getElementById("currency-input").value = state.settings.currency;
+
+    var archived = sweepToArchive();
+    if (archived) saveState();
+
+    renderCardTabs();
+    renderCardEditor();
+    renderEntryCardSelect();
+    cancelEdit();
+    renderLedger();
+    renderArchive();
+
+    if (archived) showToast("已进入新的月份，往月记录已自动移入历史存档");
+  }
+
+  initFromState();
+  handleQuickAddFromUrl();
+})();
+</script>
